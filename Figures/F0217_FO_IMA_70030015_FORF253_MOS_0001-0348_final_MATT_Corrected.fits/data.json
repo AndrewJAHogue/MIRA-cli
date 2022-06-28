@@ -1,0 +1,42 @@
+{
+    "(3115.033, 297.528)": {
+        "fwhm": 2.712004669214532,
+        "amplitude": "Parameter('amplitude', value=0.24708689266285613)"
+    },
+    "(2125.399, 3117.643)": {
+        "fwhm": 3.3114357495032722,
+        "amplitude": "Parameter('amplitude', value=0.4157239338402239)"
+    },
+    "(1464.312, 2917.259)": {
+        "fwhm": 3.1579932808233817,
+        "amplitude": "Parameter('amplitude', value=0.19304561410247026)"
+    },
+    "(958.967, 3374.497)": {
+        "fwhm": 0.0652310456600885,
+        "amplitude": "Parameter('amplitude', value=0.617543124963441)"
+    },
+    "(1145.646, 3417.084)": {
+        "fwhm": 3.484560950851885,
+        "amplitude": "Parameter('amplitude', value=0.6907407790456969)"
+    },
+    "(1174.299, 4061.468)": {
+        "fwhm": 3.8873283881187826,
+        "amplitude": "Parameter('amplitude', value=0.21335796057684261)"
+    },
+    "(1160.512, 4201.906)": {
+        "fwhm": 5.201524354592373,
+        "amplitude": "Parameter('amplitude', value=1.3863500396171329)"
+    },
+    "(542.038, 4930.369)": {
+        "fwhm": 3.1712862555075194,
+        "amplitude": "Parameter('amplitude', value=1.0774402397900846)"
+    },
+    "(614.123, 4941.865)": {
+        "fwhm": 4.407785782996834,
+        "amplitude": "Parameter('amplitude', value=0.10479229612115049)"
+    },
+    "(565.084, 5025.411)": {
+        "fwhm": 5.356530708350553,
+        "amplitude": "Parameter('amplitude', value=0.16181954290195616)"
+    }
+}

@@ -3,7 +3,8 @@ import gaussian_fit
 
 
 def csv():
-    basePath = '/media/al-chromebook/USB20FD/'
+    # basePath = '/media/al-chromebook/USB20FD/'
+    basePath = '/media/al-linux/USB20FD/'
     filename = "SOFIA pointsources"
     data = pe.load_workbook(f'{basePath}{filename}.xlsx')
     sheet = data.active

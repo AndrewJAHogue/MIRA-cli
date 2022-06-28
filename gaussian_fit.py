@@ -14,8 +14,8 @@ import warnings
 import lmfit
 from lmfit.lineshapes import  gaussian2d, lorentzian
 
-basePath = '/media/al-chromebook/USB20FD/Python/Research/fits/Full Maps/'
-# basePath = '/media/al-linux/USB20FD/Python/Research/fits/Full Maps/'
+# basePath = '/media/al-chromebook/USB20FD/Python/Research/fits/Full Maps/'
+basePath = '/media/al-linux/USB20FD/Python/Research/fits/Full Maps/'
 sofia = 'F0217_FO_IMA_70030015_FORF253_MOS_0001-0348_final_MATT_Corrected.fits'
 sofia_full = basePath + 'F0217_FO_IMA_70030015_FORF253_MOS_0001-0348_final_MATT_Corrected.fits'
 hdu = fits.open(sofia_full)[0]
@@ -68,7 +68,8 @@ def MoffatFit(coords):
     plt.imshow(Data - p(x, y), origin='lower', interpolation='nearest')
     plt.title("Residual")
 
-    basePath = '/media/al-chromebook/USB20FD/MIRA-CLI/Figures/'
+    # basePath = '/media/al-chromebook/USB20FD/MIRA-CLI/Figures/'
+    basePath = '/media/al-linux/USB20FD/MIRA-CLI/Figures/'
     newPath = f'{basePath}{sofia}/'
     # if os.path.isdir(newPath) == False:
     #     os.mkdir(newPath)
