@@ -14,8 +14,8 @@ import warnings
 import lmfit
 from lmfit.lineshapes import  gaussian2d, lorentzian
 
-# basePath = '/media/al-chromebook/USB20FD/Python/Research/fits/Full Maps/'
-basePath = '/media/al-linux/USB20FD/Python/Research/fits/Full Maps/'
+basePath = '/media/al-chromebook/USB20FD/Python/Research/fits/Full Maps/'
+# basePath = '/media/al-linux/USB20FD/Python/Research/fits/Full Maps/'
 sofia = 'F0217_FO_IMA_70030015_FORF253_MOS_0001-0348_final_MATT_Corrected.fits'
 sofia_full = basePath + 'F0217_FO_IMA_70030015_FORF253_MOS_0001-0348_final_MATT_Corrected.fits'
 hdu = fits.open(sofia_full)[0]
@@ -28,9 +28,6 @@ import json
 
 
 new_dict = {}
-# new_dict['set1'] = {'x': 10, 'y': 29}
-# coords = 1145, 3457
-# new_dict[f'{coords}'] = {'data1': 1231, 'data2': 2342}
 
 
 def MoffatFit(coords):
@@ -44,7 +41,7 @@ def MoffatFit(coords):
     data = sofia_full_image
     Data = Cutout2D(data, (coords), size).data
 
-    p_init = models.Moffat2D(x_0=15, y_0=15)
+    p_init = models.Moffat2D(x_0=size / 2, y_0=size / 2,amplitude=np.nanmax(Data) )
     fit_p = fitting.LevMarLSQFitter()
 
     with warnings.catch_warnings():
@@ -65,33 +62,28 @@ def MoffatFit(coords):
     plt.imshow(p(x, y), origin='lower', interpolation='nearest')
     plt.title("Model")
     plt.subplot(1, 3, 3)
-    plt.imshow(Data - p(x, y), origin='lower', interpolation='nearest')
+    plt.imshow(Data - ( p(x, y)*1.125 ), origin='lower', interpolation='nearest')
     plt.title("Residual")
 
     # basePath = '/media/al-chromebook/USB20FD/MIRA-CLI/Figures/'
-    basePath = '/media/al-linux/USB20FD/MIRA-CLI/Figures/'
-    newPath = f'{basePath}{sofia}/'
+    # basePath = '/media/al-linux/USB20FD/MIRA-CLI/Figures/'
+    # newPath = f'{basePath}{sofia}/'
     # if os.path.isdir(newPath) == False:
     #     os.mkdir(newPath)
-    newFile = time.strftime('%Y%m%d-%H%M%S')
-    newFile = f'{newPath}{newFile}_X{coords[0]}_Y{coords[1]}.png'
-    plt.savefig(newFile)
+    # newFile = time.strftime('%Y%m%d-%H%M%S')
+    # newFile = f'{newPath}{newFile}_X{coords[0]}_Y{coords[1]}.png'
+    # plt.savefig(newFile)
     # json_dict[f'{ coords }'].add(inner_dict)
 
-    # save the data to a json
-    with open(newPath + 'data.json', 'r+') as file:
-        file_data = json.load(file)
+    ## save the data to a json
+    # with open(newPath + 'data.json', 'r+') as file:
+        # file_data = json.load(file)
 
-        file_data.update({f'{coords}': new_dict})
-        # file_data['set1'] = {}
-        # file_data.append({'test': true})
-        file.seek(0)
-        json.dump(file_data, file, indent=4)
-    # f.close()
-    # with open(newPath + f'data.json', 'w') as f:
-    #     json.dump(json_dict, f)
+        # file_data.update({f'{coords}': new_dict})
+        # file.seek(0)
+        # json.dump(file_data, file, indent=4)
 
-    # plt.show()
+    plt.show()
     
 
 # MoffatFit((1145, 3415))
