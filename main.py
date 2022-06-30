@@ -1,7 +1,7 @@
 import openpyxl as pe
 import gaussian_fit
 import numpy as np
-
+import matplotlib.pyplot as plt
 from astropy.io import fits
 
 # __________________Parameters______________________________________________________________
@@ -112,7 +112,7 @@ def spits_iso_avg_fwhm():
     figPath = f'{computer_path}/USB20FD/MIRA-CLI/Figures/{filename}'
 
     json_file = figPath +  '/data.json'
-    print(f'{spits_isofield}_average = { avg_fwhm(json_file)}')
+    print(f'{spits_isofield}_average = { avg_fwhm(json_file)} +- {std_of_fwhm(json_file)}')
 
 def spits_iso_avg():
 
@@ -123,8 +123,169 @@ def spits_iso_avg():
 
     stdev = np.std(data)
     average = np.average(data)
-    print(f'{stdev=}')
-    print(f'{average=}')
+    print(f'{average=} +- {stdev}')
+
+def spits_derivative_map():
+    baseFits_path = '/media/al-chromebook/USB20FD/Python/Research/fits/'
+    spits_isofield = 'Spitzer24_IsoFields.fits'
+
+    data1 = fits.open(baseFits_path + spits_isofield)[0].data
+
+    spits_point_sources = [
+        [52,115],
+        [35,35],
+        [288, 328],
+        [258, 337],
+        [250, 81],
+        [80, 89],
+        [90, 309],
+        [28, 327]
+    ]
+
+    xvalue, yvalue = 227, 154
+    
+
+    column = GetNthColumn(data1, xvalue)
+    columnLineplot = plt.subplot(1,2,1)
+    plt.title(f'Column-Pixel Saturation at X={xvalue}')
+    plt.xlabel('Y Index')
+    plt.ylabel('Pixel Value')
+    plt.plot(column[0],column[1])
+
+    row = GetNthRow(data1, yvalue)
+    rowLineplot = plt.subplot(1,2,2)
+    plt.title(f'Row-Pixel Saturation at Y={yvalue}')
+    plt.xlabel('X Index')
+    plt.ylabel('Pixel Value')
+    plt.plot(row[0],row[1])
+
+    data2 = np.diff(data1, 2)
+
+    column = GetNthColumn(data2, xvalue)
+    columnLineplot = plt.subplot(1,2,1)
+    plt.title(f'Column-Pixel Saturation at X={xvalue}')
+    plt.xlabel('Y Index')
+    plt.ylabel('Pixel Value')
+    plt.plot(column[0],column[1])
+
+    row = GetNthRow(data2, yvalue)
+    rowLineplot = plt.subplot(1,2,2)
+    plt.title(f'Row-Pixel Saturation at Y={yvalue}')
+    plt.xlabel('X Index')
+    plt.ylabel('Pixel Value')
+    plt.plot(row[0],row[1])
+
+    plt.show()
+
+def gauss_derivative():
+
+    baseFits_path = '/media/al-chromebook/USB20FD/Python/Research/fits/'
+    spits_isofield = 'Spitzer24_IsoFields.fits'
+
+    data1 = fits.open(baseFits_path + spits_isofield)[0].data
+    data2 = np.diff(data1, 2)
+
+    spits_point_sources = [
+        [52,115],
+        [35,35],
+        [288, 328],
+        [258, 337],
+        [250, 81],
+        [80, 89],
+        [90, 309],
+        [28, 327]
+    ]
+
+    coords = spits_point_sources[0]
+    # coords = 227, 154
+    cutoutSize = 50
+    
+    # file_hdu = fits.open(file)[0]
+    # file_data = file_hdu.data
+    file_data = data2
+
+    from astropy.nddata import Cutout2D 
+    import astropy.stats as stats
+    from astropy.modeling import models, fitting
+    import warnings
+    from astropy.utils.exceptions import AstropyUserWarning
+    x,y = np.mgrid[:cutoutSize, :cutoutSize]
+    Data = Cutout2D(file_data, (coords), cutoutSize).data
+    mean, median, tmp = stats.sigma_clipped_stats(Data)
+    Data -= median
+
+    # p_init = models.Moffat2D(x_0=size / 2, y_0=size / 2,amplitude=np.nanmax(Data) )
+    p_init = models.Gaussian2D(x_mean=15, y_mean=15)
+    fit_p = fitting.LevMarLSQFitter()
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', message='Model is linear in parameters', category=AstropyUserWarning)
+        p = fit_p(p_init, x, y, Data)
+
+    fwhm_x = p.x_fwhm*3.2
+    fwhm_y = p.y_fwhm*3.2
+    print(f'{fwhm_x=} and {fwhm_y=} and fwhm={np.sqrt(fwhm_x*fwhm_y)}')
 
 
-spits_iso_avg()
+    plt.figure(figsize=(8, 2.5))
+    plt.imshow(Data, origin='lower', interpolation='nearest')
+    plt.title("Data")
+
+    plt.show()
+
+
+def smooth_sofia():
+    from astropy.stats import gaussian_fwhm_to_sigma
+    from os.path import exists
+    from math import floor
+    from random import gauss
+    import numpy as np
+
+    from astropy.io import fits
+    from astropy.convolution import Gaussian2DKernel, convolve, interpolate_replace_nans, convolve_fft
+
+    baseFits_path = '/media/al-chromebook/USB20FD/Python/Research/fits/'
+    spits_isofield = 'Spitzer24_IsoFields.fits'
+
+    data1 = fits.open(baseFits_path + spits_isofield)[0].data
+    data2 = np.diff(data1, 2)
+
+    spits_point_sources = [
+        [52,115],
+        [35,35],
+        [288, 328],
+        [258, 337],
+        [250, 81],
+        [80, 89],
+        [90, 309],
+        [28, 327]
+    ]
+
+    coords = spits_point_sources[0]
+    fwhm = 6.9
+    # coords = 227, 154
+    cutoutSize = 50
+    file_data = data2
+
+    from astropy.nddata import Cutout2D 
+    import astropy.stats as stats
+    from astropy.modeling import models, fitting
+    import warnings
+    from astropy.utils.exceptions import AstropyUserWarning
+    x,y = np.mgrid[:cutoutSize, :cutoutSize]
+    Data = Cutout2D(file_data, (coords), cutoutSize).data
+    mean, median, tmp = stats.sigma_clipped_stats(Data)
+    Data -= median
+
+    sigma = fwhm * 1.302 * gaussian_fwhm_to_sigma ## converts from arcseconds to pixels
+    kernel = Gaussian2DKernel(sigma)
+    astropy_conv = convolve_fft(Data, kernel, allow_huge=True)
+    
+    # file_hdu = fits.open(file)[0]
+    # file_data = file_hdu.data
+    plt.figure(figsize=(8, 2.5))
+    plt.imshow(Data, origin='lower', interpolation='nearest')
+    plt.title("Data")
+    plt.show()
+
+smooth_sofia()
