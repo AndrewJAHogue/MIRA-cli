@@ -244,11 +244,12 @@ def smooth_sofia():
     from astropy.io import fits
     from astropy.convolution import Gaussian2DKernel, convolve, interpolate_replace_nans, convolve_fft
 
-    baseFits_path = '/media/al-chromebook/USB20FD/Python/Research/fits/'
+    baseFits_path = '/media/al-linux/USB20FD/Python/Research/fits/'
+    # baseFits_path = '/media/al-chromebook/USB20FD/Python/Research/fits/'
     spits_isofield = 'Spitzer24_IsoFields.fits'
 
-    data1 = fits.open(baseFits_path + spits_isofield)[0].data
-    data2 = np.diff(data1, 2)
+    original_data = fits.open(baseFits_path + spits_isofield)[0].data
+    diff_data = np.diff(original_data, 2)
 
     spits_point_sources = [
         [52,115],
@@ -265,27 +266,42 @@ def smooth_sofia():
     fwhm = 6.9
     # coords = 227, 154
     cutoutSize = 50
-    file_data = data2
+    file_data = diff_data
 
     from astropy.nddata import Cutout2D 
     import astropy.stats as stats
     from astropy.modeling import models, fitting
     import warnings
     from astropy.utils.exceptions import AstropyUserWarning
+    from lineplots import GetNthColumn, GetNthRow
     x,y = np.mgrid[:cutoutSize, :cutoutSize]
-    Data = Cutout2D(file_data, (coords), cutoutSize).data
-    mean, median, tmp = stats.sigma_clipped_stats(Data)
-    Data -= median
+    # original map
+    org_cutout = Cutout2D(original_data, (coords), cutoutSize).data
+    mean, median, tmp = stats.sigma_clipped_stats(org_cutout)
+    org_cutout -= median
+    # differential map
+    diff_cutout = Cutout2D(file_data, (coords), cutoutSize).data
+    mean, median, tmp = stats.sigma_clipped_stats(diff_cutout)
+    diff_cutout -= median
 
-    sigma = fwhm * 1.302 * gaussian_fwhm_to_sigma ## converts from arcseconds to pixels
-    kernel = Gaussian2DKernel(sigma)
-    astropy_conv = convolve_fft(Data, kernel, allow_huge=True)
+    # sigma = fwhm * 1.302 * gaussian_fwhm_to_sigma ## converts from arcseconds to pixels
+    # kernel = Gaussian2DKernel(2)
+    # astropy_conv = convolve_fft(diff_cutout, kernel, allow_huge=True)
     
     # file_hdu = fits.open(file)[0]
     # file_data = file_hdu.data
-    plt.figure(figsize=(8, 2.5))
-    plt.imshow(Data, origin='lower', interpolation='nearest')
-    plt.title("Data")
+    plt.subplot(121)
+    xy = GetNthColumn(original_data, 0)
+    x, y = xy
+    print(f'{len(x)=} and {len(y)=} ')
+    plt.plot(x, y)
+    plt.subplot(122)
+    x, y = GetNthColumn(diff_data, 0)
+    print(f'{len(x)=} and {len(y)=} ')
+    plt.plot(x, y)
+
+
+
     plt.show()
 
 smooth_sofia()
