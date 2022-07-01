@@ -234,7 +234,7 @@ def gauss_derivative():
     plt.show()
 
 
-def smooth_sofia():
+def diff_map_sofia():
     from astropy.stats import gaussian_fwhm_to_sigma
     from os.path import exists
     from math import floor
@@ -244,8 +244,8 @@ def smooth_sofia():
     from astropy.io import fits
     from astropy.convolution import Gaussian2DKernel, convolve, interpolate_replace_nans, convolve_fft
 
-    baseFits_path = '/media/al-linux/USB20FD/Python/Research/fits/'
-    # baseFits_path = '/media/al-chromebook/USB20FD/Python/Research/fits/'
+    # baseFits_path = '/media/al-linux/USB20FD/Python/Research/fits/'
+    baseFits_path = '/media/al-chromebook/USB20FD/Python/Research/fits/'
     spits_isofield = 'Spitzer24_IsoFields.fits'
 
     original_data = fits.open(baseFits_path + spits_isofield)[0].data
@@ -304,4 +304,77 @@ def smooth_sofia():
 
     plt.show()
 
-smooth_sofia()
+def smoothen_sofia():
+    from astropy.stats import gaussian_fwhm_to_sigma
+    from os.path import exists
+    from math import floor
+    from random import gauss
+    import numpy as np
+
+    from astropy.io import fits
+    from astropy.convolution import Gaussian2DKernel, convolve, interpolate_replace_nans, convolve_fft
+
+    # baseFits_path = '/media/al-linux/USB20FD/Python/Research/fits/'
+    baseFits_path = '/media/al-chromebook/USB20FD/Python/Research/fits/'
+    org_path = 'Full Maps/Originals/'
+    spits_full = baseFits_path + org_path + 'gcmosaic_24um.fits'
+    # spits_isofield = 'Spitzer24_IsoFields.fits'
+
+    original_data = fits.open(spits_full)[0].data
+    diff_data = np.diff(original_data, 2)
+
+    spits_point_sources = [
+        [52,115],
+        [35,35],
+        [288, 328],
+        [258, 337],
+        [250, 81],
+        [80, 89],
+        [90, 309],
+        [28, 327]
+    ]
+
+    coords = spits_point_sources[0]
+    fwhm = 6.9
+    # coords = 227, 154
+    cutoutSize = 50
+    file_data = diff_data
+
+    from astropy.nddata import Cutout2D 
+    import astropy.stats as stats
+    from astropy.modeling import models, fitting
+    import warnings
+    from astropy.utils.exceptions import AstropyUserWarning
+    from lineplots import GetNthColumn, GetNthRow
+    x,y = np.mgrid[:cutoutSize, :cutoutSize]
+    # original map
+    org_cutout = Cutout2D(original_data, (coords), cutoutSize).data
+    mean, median, tmp = stats.sigma_clipped_stats(org_cutout)
+    org_cutout -= median
+    # differential map
+    diff_cutout = Cutout2D(file_data, (coords), cutoutSize).data
+    mean, median, tmp = stats.sigma_clipped_stats(diff_cutout)
+    diff_cutout -= median
+
+    sigma = fwhm * 1.302 * gaussian_fwhm_to_sigma ## converts from arcseconds to pixels
+    kernel = Gaussian2DKernel(2)
+    astropy_conv = convolve_fft(original_data, kernel, allow_huge=True)
+    
+    # file_hdu = fits.open(file)[0]
+    # file_data = file_hdu.data
+    plt.subplot(121)
+    xy = GetNthColumn(original_data, 0)
+    x, y = xy
+    print(f'{len(x)=} and {len(y)=} ')
+    plt.title('Original Data')
+    plt.plot(x, y)
+    plt.subplot(122)
+    x, y = GetNthColumn(astropy_conv, 0)
+    print(f'{len(x)=} and {len(y)=} ')
+    plt.title('Convolved')
+    plt.plot(x, y)
+
+
+    plt.show()
+
+smoothen_sofia()
