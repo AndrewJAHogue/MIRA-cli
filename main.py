@@ -369,10 +369,10 @@ def smoothen_sofia():
     # coords = 3115, 298
     # coords = 791, 4718
     # coords =  3080, 372
-    coords = sofia_point_sources[0]
+    coords = 2213, 3647
     from gaussian_fit import get_fwhm_gauss_file, get_fwhm_gauss_data
     # coords = 227, 154
-    cutoutSize = 100
+    cutoutSize = 15
 
 
 
@@ -394,25 +394,28 @@ def smoothen_sofia():
 
     
     org_cutout = Cutout2D(original_data, (coords), cutoutSize).data
-    # mean, median, tmp = stats.sigma_clipped_stats(org_cutout)
-    x, y = GetNthColumn(org_cutout, round(cutoutSize/2))
-    plt.subplot(121)
-    plt.title(f'Original Data {fwhm=}')
-    plt.plot(x, y)
-
     conv_cutout = Cutout2D(astropy_conv, (coords), cutoutSize).data
-    x, y = GetNthColumn(conv_cutout, round(cutoutSize/2))
-    plt.subplot(122)
-    plt.title(f'Convolved {fwhm_conv=}')
-    plt.plot(x, y)
+
+    # # mean, median, tmp = stats.sigma_clipped_stats(org_cutout)
+    # x, y = GetNthColumn(org_cutout, round(cutoutSize/2))
+    # plt.subplot(121)
+    # plt.title(f'Original Data {fwhm=}')
+    # plt.plot(x, y)
+
+    # x, y = GetNthColumn(conv_cutout, round(cutoutSize/2))
+    # plt.subplot(122)
+    # plt.title(f'Convolved {fwhm_conv=}')
+    # plt.plot(x, y)
+
+    print(f'Percent difference = {100 - fwhm/fwhm_conv * 100 =}')
 
 
-    # plt.subplot(131)
-    # plt.imshow(org_cutout)
-    # plt.subplot(132)
-    # plt.imshow(conv_cutout)
-    # plt.subplot(133)
-    # plt.imshow(org_cutout - conv_cutout)
+    plt.subplot(131)
+    plt.imshow(org_cutout)
+    plt.subplot(132)
+    plt.imshow(conv_cutout)
+    plt.subplot(133)
+    plt.imshow(org_cutout - conv_cutout)
 
 
     plt.show()
@@ -429,4 +432,83 @@ def get_json_info(filepath):
             new_dict.append(key)
     return new_dict
 
-smoothen_sofia()
+def loop_smoothen_sofia():
+    from astropy.stats import gaussian_fwhm_to_sigma
+    from os.path import exists
+    from math import floor
+    from random import gauss
+    import numpy as np
+
+    from astropy.io import fits
+    from astropy.convolution import Gaussian2DKernel, convolve, interpolate_replace_nans, convolve_fft 
+
+    # baseFits_path = f'{computer_path}/USB20FD/Python/Research/fits/'
+    baseFits_path = f'{computer_path}/Python/Research/fits/'
+    org_path = 'Full Maps/Originals/'
+    sofia_full = baseFits_path + org_path + 'F0217_FO_IMA_70030015_FORF253_MOS_0001-0348_final_MATT_Corrected.fits'
+
+    original_data = fits.open(sofia_full)[0].data
+
+    sofia_point_sources = [
+        [3115,297],
+        [1339,2698],
+        [1145,3417],
+        [1174,4061],
+        [1160,4201],
+        [542,4930],
+        [614,4941],
+        [565,5025]
+    ] 
+    new_sofia_points = [
+        [ 542,  4930 ],
+        [ 1123, 4156 ],
+        [ 1313, 4132 ],
+        [ 1174, 4061 ],
+        [ 1105, 3833 ],
+        [ 1464, 2917 ],
+        [ 2740, 1789 ],
+        [ 2614, 1899 ],
+        [ 2770, 1864 ],
+        [ 2725, 1414 ],
+        [ 2693, 1204 ],
+        [ 2817, 1214 ]
+    ]
+
+    # x, y
+    # coords = 3115, 298
+    # coords = 791, 4718
+    # coords =  3080, 372
+    coords = new_sofia_points[0]
+    from gaussian_fit import get_fwhm_gauss_file, get_fwhm_gauss_data
+    cutoutSize = 15
+
+
+
+    from astropy.nddata import Cutout2D 
+    import astropy.stats as stats
+    from lineplots import GetNthColumn, GetNthRow
+    # original map
+    original_data[np.isnan(original_data)] = 0
+    original_data[np.isinf(original_data)] = 0
+    # org_cutout -= median
+    org_fwhms = []
+    conv_fwhms = []
+    for point in new_sofia_points:
+        print(f'\n{point=}')
+        fwhm = get_fwhm_gauss_data((point), original_data, cutoutSize)['fwhm']
+        org_fwhms.append(fwhm)
+
+        kernel = Gaussian2DKernel(1.20)
+        astropy_conv = convolve_fft(original_data, kernel, allow_huge=True)
+        print('\nAnd the convolved point data is::')
+        fwhm_conv = get_fwhm_gauss_data((point), astropy_conv, cutoutSize)['fwhm']
+        conv_fwhms.append(fwhm_conv)
+        # fwhm_conv *= 3.2 ## ONLY FOR SPITZER FILES
+
+    
+    print(f'{np.average(org_fwhms)=} and {np.average(conv_fwhms)=}')
+
+
+loop_smoothen_sofia()
+
+# np.average(org_fwhms)=5.015014581927903 and np.average(conv_fwhms)=6.4360830539570335
