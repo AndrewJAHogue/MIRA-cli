@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 from astropy.io import fits
 
 # __________________Parameters______________________________________________________________
-computer_path = '/media/al-linux/USB20FD/'
-# computer_path = '/media/al-chromebook/USB20FD/'
+# computer_path = '/media/al-linux/USB20FD/'
+computer_path = '/media/al-chromebook/USB20FD/'
 Combined_path = f'{computer_path}/Python/Research/fits/Combined Maps/'
 basePath = f'{computer_path}/Python/Research/fits/Full Maps/'
 
@@ -330,17 +330,17 @@ def smoothen_sofia():
     import numpy as np
 
     from astropy.io import fits
-    from astropy.convolution import Gaussian2DKernel, convolve, interpolate_replace_nans, convolve_fft
+    from astropy.convolution import Gaussian2DKernel, convolve, interpolate_replace_nans, convolve_fft 
 
-    baseFits_path = '/media/al-linux/USB20FD/Python/Research/fits/'
-    # baseFits_path = '/media/al-chromebook/USB20FD/Python/Research/fits/'
+    # baseFits_path = f'{computer_path}/USB20FD/Python/Research/fits/'
+    baseFits_path = f'{computer_path}/Python/Research/fits/'
     org_path = 'Full Maps/Originals/'
     spits_full = baseFits_path + org_path + 'gcmosaic_24um.fits'
     sofia_full = baseFits_path + org_path + 'F0217_FO_IMA_70030015_FORF253_MOS_0001-0348_final_MATT_Corrected.fits'
     # spits_isofield = 'Spitzer24_IsoFields.fits'
 
     original_data = fits.open(sofia_full)[0].data
-    diff_data = np.diff(original_data, 2)
+    # diff_data = np.diff(original_data, 2)
 
     spits_point_sources = [
         [52,115],
@@ -355,7 +355,7 @@ def smoothen_sofia():
     sofia_point_sources = [
     [297,  3115],
     [3117,  2125],
-    [2917,  1464],
+    [2698,  1339],
     [3374,  958],
     [3417,  1145],
     [4061,  1174],
@@ -366,55 +366,59 @@ def smoothen_sofia():
     ] 
 
     coords = 3115, 298
+    # coords = sofia_point_sources[0]
     from gaussian_fit import get_fwhm_gauss_file, get_fwhm_gauss_data
     # coords = 227, 154
     cutoutSize = 50
 
-    fwhm = get_fwhm_gauss_file((coords), sofia_full, cutoutSize)['fwhm']
-    print(fwhm)
 
-    file_data = diff_data
+    # file_data = diff_data
 
     from astropy.nddata import Cutout2D 
     import astropy.stats as stats
-    from astropy.modeling import models, fitting
-    import warnings
-    from astropy.utils.exceptions import AstropyUserWarning
+    # from astropy.modeling import models, fitting
+    # import warnings
+    # from astropy.utils.exceptions import AstropyUserWarning
     from lineplots import GetNthColumn, GetNthRow
-    x,y = np.mgrid[:cutoutSize, :cutoutSize]
+    # x,y = np.mgrid[:cutoutSize, :cutoutSize]
     # original map
+    original_data[np.isnan(original_data)] = 0
+    original_data[np.isinf(original_data)] = 0
     org_cutout = Cutout2D(original_data, (coords), cutoutSize).data
-    mean, median, tmp = stats.sigma_clipped_stats(org_cutout)
-    org_cutout -= median
-    # differential map
-    diff_cutout = Cutout2D(file_data, (coords), cutoutSize).data
-    mean, median, tmp = stats.sigma_clipped_stats(diff_cutout)
-    diff_cutout -= median
+    # mean, median, tmp = stats.sigma_clipped_stats(org_cutout)
+    # org_cutout -= median
+    fwhm = get_fwhm_gauss_data((coords), original_data, cutoutSize)['fwhm']
+    # print(fwhm)
 
-    sigma = fwhm * 1.302
-    spits_avg_fwhm = spits_iso_avg_fwhm()
-    sofia_avg_fwhm = sofia_iso_avg_fwhm() 
-    target_fwhm = spits_avg_fwhm / sofia_avg_fwhm
-    print(f'{target_fwhm=}')
+    # sigma = fwhm * 1.302
+    # spits_avg_fwhm = spits_iso_avg_fwhm()
+    # sofia_avg_fwhm = sofia_iso_avg_fwhm() 
+    # target_fwhm = spits_avg_fwhm / sofia_avg_fwhm
+    # print(f'{target_fwhm=}')
 
-    kernel = Gaussian2DKernel(target_fwhm)
+    kernel = Gaussian2DKernel(1)
     astropy_conv = convolve_fft(original_data, kernel, allow_huge=True)
+    conv_cutout = Cutout2D(astropy_conv, (coords), cutoutSize).data
     fwhm_conv = get_fwhm_gauss_data((coords), astropy_conv, cutoutSize)['fwhm']
 
     
-    # file_hdu = fits.open(file)[0]
-    # file_data = file_hdu.data
+    # # file_hdu = fits.open(file)[0]
+    # # file_data = file_hdu.data
     plt.subplot(121)
-    xy = GetNthColumn(original_data, coords[0])
-    x, y = xy
-    plt.title(f'Original Data {fwhm=}')
-    plt.plot(x, y)
+    # xy = GetNthColumn(org_cutout, 0)
+    # x, y = xy
+    # plt.title(f'Original Data {fwhm=}')
+    # plt.plot(x, y)
+    plt.imshow(org_cutout)
     plt.subplot(122)
-    x, y = GetNthColumn(astropy_conv, coords[0])
-    plt.title(f'Convolved {fwhm_conv=}')
-    plt.plot(x, y)
+    plt.imshow(org_cutout - conv_cutout)
 
-    print(f'{fwhm/fwhm_conv=}')
+    # plt.plot(org_cutout[0], org_cutout[1])
+    # x, y = GetNthColumn(conv_cutout, 0)
+    # plt.title(f'Convolved {fwhm_conv=}')
+    # plt.plot(x, y)
+
+    # print(f'{fwhm/fwhm_conv=}')
 
 
     plt.show()
