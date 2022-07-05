@@ -5,9 +5,10 @@ import matplotlib.pyplot as plt
 from astropy.io import fits
 
 # __________________Parameters______________________________________________________________
-computer_path = '/media/al-chromebook/'
-Combined_path = '/media/al-chromebook/USB20FD/Python/Research/fits/Combined Maps/'
-basePath = f'{computer_path}USB20FD/Python/Research/fits/Full Maps/'
+computer_path = '/media/al-linux/USB20FD/'
+# computer_path = '/media/al-chromebook/USB20FD/'
+Combined_path = f'{computer_path}/Python/Research/fits/Combined Maps/'
+basePath = f'{computer_path}/Python/Research/fits/Full Maps/'
 
 
 # file = 'full_0.0147_2026.fits.fits'
@@ -104,15 +105,32 @@ def spits_iso_std():
     return std_of_fwhm(json_file)
 
 def spits_iso_avg_fwhm():
-    base_figPath = f'{computer_path}/USB20FD/MIRA-CLI/Figures/'
+    base_figPath = f'{computer_path}/MIRA-CLI/Figures/'
 
     spits_isofield = 'Spitzer24_IsoFields.fits'
 
     filename = spits_isofield + '_Gauss2D'
-    figPath = f'{computer_path}/USB20FD/MIRA-CLI/Figures/{filename}'
+    figPath = f'{computer_path}/MIRA-CLI/Figures/{filename}'
 
     json_file = figPath +  '/data.json'
-    print(f'{spits_isofield}_average = { avg_fwhm(json_file)} +- {std_of_fwhm(json_file)}')
+    avg =  avg_fwhm(json_file)
+    std = std_of_fwhm(json_file)
+    print(f'{spits_isofield}_average = {avg} +- {std}')
+    return avg
+
+def sofia_iso_avg_fwhm():
+    base_figPath = f'{computer_path}/MIRA-CLI/Figures/'
+
+    sofia = 'F0217_FO_IMA_70030015_FORF253_MOS_0001-0348_final_MATT_Corrected.fits'
+
+    filename = sofia + '_Gauss2D'
+    figPath = base_figPath + filename 
+
+    json_file = figPath +  '/data.json'
+    avg =  avg_fwhm(json_file)
+    std = std_of_fwhm(json_file)
+    print(f'{sofia}_average = {avg} +- {std}')
+    return avg
 
 def spits_iso_avg():
 
@@ -244,8 +262,8 @@ def diff_map_sofia():
     from astropy.io import fits
     from astropy.convolution import Gaussian2DKernel, convolve, interpolate_replace_nans, convolve_fft
 
-    # baseFits_path = '/media/al-linux/USB20FD/Python/Research/fits/'
-    baseFits_path = '/media/al-chromebook/USB20FD/Python/Research/fits/'
+    baseFits_path = '/media/al-linux/USB20FD/Python/Research/fits/'
+    # baseFits_path = '/media/al-chromebook/USB20FD/Python/Research/fits/'
     spits_isofield = 'Spitzer24_IsoFields.fits'
 
     original_data = fits.open(baseFits_path + spits_isofield)[0].data
@@ -314,13 +332,14 @@ def smoothen_sofia():
     from astropy.io import fits
     from astropy.convolution import Gaussian2DKernel, convolve, interpolate_replace_nans, convolve_fft
 
-    # baseFits_path = '/media/al-linux/USB20FD/Python/Research/fits/'
-    baseFits_path = '/media/al-chromebook/USB20FD/Python/Research/fits/'
+    baseFits_path = '/media/al-linux/USB20FD/Python/Research/fits/'
+    # baseFits_path = '/media/al-chromebook/USB20FD/Python/Research/fits/'
     org_path = 'Full Maps/Originals/'
     spits_full = baseFits_path + org_path + 'gcmosaic_24um.fits'
+    sofia_full = baseFits_path + org_path + 'F0217_FO_IMA_70030015_FORF253_MOS_0001-0348_final_MATT_Corrected.fits'
     # spits_isofield = 'Spitzer24_IsoFields.fits'
 
-    original_data = fits.open(spits_full)[0].data
+    original_data = fits.open(sofia_full)[0].data
     diff_data = np.diff(original_data, 2)
 
     spits_point_sources = [
@@ -333,11 +352,27 @@ def smoothen_sofia():
         [90, 309],
         [28, 327]
     ]
+    sofia_point_sources = [
+    [297,  3115],
+    [3117,  2125],
+    [2917,  1464],
+    [3374,  958],
+    [3417,  1145],
+    [4061,  1174],
+    [4201,  1160],
+    [4930,  542],
+    [4941,  614],
+    [ 5025, 565 ]
+    ] 
 
-    coords = spits_point_sources[0]
-    fwhm = 6.9
+    coords = 3115, 298
+    from gaussian_fit import get_fwhm_gauss_file, get_fwhm_gauss_data
     # coords = 227, 154
     cutoutSize = 50
+
+    fwhm = get_fwhm_gauss_file((coords), sofia_full, cutoutSize)['fwhm']
+    print(fwhm)
+
     file_data = diff_data
 
     from astropy.nddata import Cutout2D 
@@ -356,25 +391,44 @@ def smoothen_sofia():
     mean, median, tmp = stats.sigma_clipped_stats(diff_cutout)
     diff_cutout -= median
 
-    sigma = fwhm * 1.302 * gaussian_fwhm_to_sigma ## converts from arcseconds to pixels
-    kernel = Gaussian2DKernel(2)
+    sigma = fwhm * 1.302
+    spits_avg_fwhm = spits_iso_avg_fwhm()
+    sofia_avg_fwhm = sofia_iso_avg_fwhm() 
+    target_fwhm = spits_avg_fwhm / sofia_avg_fwhm
+    print(f'{target_fwhm=}')
+
+    kernel = Gaussian2DKernel(target_fwhm)
     astropy_conv = convolve_fft(original_data, kernel, allow_huge=True)
+    fwhm_conv = get_fwhm_gauss_data((coords), astropy_conv, cutoutSize)['fwhm']
+
     
     # file_hdu = fits.open(file)[0]
     # file_data = file_hdu.data
     plt.subplot(121)
-    xy = GetNthColumn(original_data, 0)
+    xy = GetNthColumn(original_data, coords[0])
     x, y = xy
-    print(f'{len(x)=} and {len(y)=} ')
-    plt.title('Original Data')
+    plt.title(f'Original Data {fwhm=}')
     plt.plot(x, y)
     plt.subplot(122)
-    x, y = GetNthColumn(astropy_conv, 0)
-    print(f'{len(x)=} and {len(y)=} ')
-    plt.title('Convolved')
+    x, y = GetNthColumn(astropy_conv, coords[0])
+    plt.title(f'Convolved {fwhm_conv=}')
     plt.plot(x, y)
+
+    print(f'{fwhm/fwhm_conv=}')
 
 
     plt.show()
+
+def get_json_info(filepath):
+    new_dict = []
+    import json
+
+    json_file = computer_path + 'MIRA-CLI/Figures/' + 'F0217_FO_IMA_70030015_FORF253_MOS_0001-0348_final_MATT_Corrected.fits_Gauss2D/' + 'data.json'
+    with open(filepath, 'r+') as f:
+        f_data = json.load(f)
+
+        for key in f_data:
+            new_dict.append(key)
+    return new_dict
 
 smoothen_sofia()

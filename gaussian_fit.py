@@ -190,6 +190,65 @@ def spliceFullPath(file):
     index = file.rfind('/') + 1
     return file[index:]
 
+
+def get_fwhm_gauss_file(coords, file, cutoutSize, saveFigs=False, showPlot = True):
+    file_hdu = fits.open(file)[0]
+    file_data = file_hdu.data
+
+    new_dict = {}
+
+    from astropy.nddata import Cutout2D 
+    x,y = np.mgrid[:cutoutSize, :cutoutSize]
+    Data = Cutout2D(file_data, (coords), cutoutSize).data
+    mean, median, tmp = stats.sigma_clipped_stats(Data)
+    Data -= median
+
+    # p_init = models.Moffat2D(x_0=size / 2, y_0=size / 2,amplitude=np.nanmax(Data) )
+    p_init = models.Gaussian2D(x_mean=15, y_mean=15)
+    fit_p = fitting.LevMarLSQFitter()
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', message='Model is linear in parameters', category=AstropyUserWarning)
+        p = fit_p(p_init, x, y, Data)
+
+    fwhm_x = p.x_fwhm*3.2
+    fwhm_y = p.y_fwhm*3.2
+    print(f'{fwhm_x=} and {fwhm_y=} and fwhm={np.sqrt(fwhm_x*fwhm_y)}')
+    new_dict['fwhm'] = np.sqrt(fwhm_x*fwhm_y)
+    new_dict['fwhm_x'] = fwhm_x
+    new_dict['fwhm_y'] = fwhm_y
+
+    return new_dict
+    
+def get_fwhm_gauss_data(coords, data, cutoutSize, saveFigs=False, showPlot = True):
+    file_data = data
+
+    new_dict = {}
+
+    from astropy.nddata import Cutout2D 
+    x,y = np.mgrid[:cutoutSize, :cutoutSize]
+    Data = Cutout2D(file_data, (coords), cutoutSize).data
+    mean, median, tmp = stats.sigma_clipped_stats(Data)
+    # Data -= median
+
+    # p_init = models.Moffat2D(x_0=size / 2, y_0=size / 2,amplitude=np.nanmax(Data) )
+    p_init = models.Gaussian2D(x_mean=cutoutSize / 2, y_mean=cutoutSize / 2)
+    fit_p = fitting.LevMarLSQFitter()
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', message='Model is linear in parameters', category=AstropyUserWarning)
+        p = fit_p(p_init, x, y, Data)
+
+    fwhm_x = p.x_fwhm*3.2
+    fwhm_y = p.y_fwhm*3.2
+    print(f'{fwhm_x=} and {fwhm_y=} and fwhm={np.sqrt(fwhm_x*fwhm_y)}')
+    new_dict['fwhm'] = np.sqrt(fwhm_x*fwhm_y)
+    new_dict['fwhm_x'] = fwhm_x
+    new_dict['fwhm_y'] = fwhm_y
+
+    return new_dict
+    
+
 # __________________Parameters______________________________________________________________
 
 combinedPath = '/media/al-chromebook/USB20FD/Python/Research/fits/Combined Maps/'
