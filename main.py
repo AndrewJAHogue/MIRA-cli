@@ -509,6 +509,28 @@ def loop_smoothen_sofia():
     print(f'{np.average(org_fwhms)=} and {np.average(conv_fwhms)=}')
 
 
-loop_smoothen_sofia()
 
 # np.average(org_fwhms)=5.015014581927903 and np.average(conv_fwhms)=6.4360830539570335
+
+
+from astropy.io import fits
+
+# baseFits_path = f'{computer_path}/USB20FD/Python/Research/fits/'
+baseFits_path = f'{computer_path}/Python/Research/fits/'
+org_path = 'Full Maps/Originals/'
+sofia_full = baseFits_path + org_path + 'F0217_FO_IMA_70030015_FORF253_MOS_0001-0348_final_MATT_Corrected.fits'
+spitz_path = baseFits_path + org_path + 'Spitzer_GCmosaic_24um_onFORCASTheader_JyPix.fits'
+coadd_path = f'{computer_path}/1.15_coadd.fits'
+
+spits_data = fits.open(spitz_path)[0].data
+coadd_data = fits.open(coadd_path)[0].data
+
+from lineplots import GetNthColumn, GetNthRow
+x, y = GetNthRow(spits_data, 3309)
+plt.plot(x, y, label='Spitzer')
+
+x, y = GetNthRow(coadd_data, 3309)
+plt.plot(x, y, label='Coadd')
+plt.legend()
+
+plt.show()
